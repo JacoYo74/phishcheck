@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PhishCheck</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>PhishCheck</h1>
+    <nav>
+      <button id="tabcheck" class="tab active">Check an email</button>
+      <button id="tablearn" class="tab">Learn to spot scams</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="checkpage">
+      <p class="note">Your email is checked inside your browser. Nothing is uploaded or stored.</p>
+
+      <label for="fromfield">From (e.g. Name &lt;name@example.com&gt;)</label>
+      <input id="fromfield" type="text">
+
+      <label for="subjectfield">Subject</label>
+      <input id="subjectfield" type="text">
+
+      <label for="bodyfield">Email text</label>
+      <textarea id="bodyfield" rows="10"></textarea>
+
+      <button id="checkbutton">Check this email</button>
+
+      <div id="result" hidden>
+        <p>Scam risk score (click the number to see why):</p>
+        <button id="scorebutton"></button>
+        <p id="label"></p>
+        <p class="note">This is a risk score based on warning signs, not a guarantee either way.</p>
+        <div id="reasons" hidden></div>
+      </div>
+    </section>
+
+    <section id="learnpage" hidden>
+      <h2>Lesson: spot the warning signs</h2>
+      <p>Each red circle marks something suspicious. Read the numbered notes underneath.</p>
+      <div id="lesson"></div>
+      <h2>Quiz</h2>
+      <div id="quiz"></div>
+    </section>
+  </main>
+
+  <script src="scanner.js"></script>
+  <script src="learn.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
