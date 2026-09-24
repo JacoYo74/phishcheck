@@ -1,18 +1,313 @@
-body { font-family: Arial, sans-serif; margin: 0; background: #f4f6f8; color: #222; }
-header { background: #1f3a5f; color: white; padding: 12px 20px; }
-nav { margin-top: 8px; }
-main { max-width: 700px; margin: 20px auto; padding: 0 16px; }
-label { display: block; margin-top: 12px; font-weight: bold; }
-input, textarea { width: 100%; padding: 8px; box-sizing: border-box; font-size: 1em; }
-button { padding: 8px 14px; margin-top: 10px; font-size: 1em; cursor: pointer; }
-.tab { background: #dde3ea; border: none; }
-.tab.active { background: white; font-weight: bold; }
-.note { color: #555; font-size: 0.9em; }
-#scorebutton { font-size: 2.5em; padding: 10px 30px; }
-.reason { background: white; border-left: 4px solid #d33; padding: 8px 12px; margin: 8px 0; }
-.fakeemail { white-space: pre-wrap; background: white; border: 1px solid #ccc; padding: 14px; line-height: 2; }
-.flagged { border: 2px solid #d33; border-radius: 12px; padding: 0 5px; }
-.badge { background: #d33; color: white; border-radius: 50%; padding: 0 6px; margin-left: 3px; font-size: 0.75em; }
-.quizbox { background: white; padding: 14px; border: 1px solid #ccc; }
-.good { color: #1a7f37; font-weight: bold; }
-.bad { color: #c62828; font-weight: bold; }
+/* style.css - big, friendly, easy to read. Highlighter-pen circles are the memorable bit. */
+
+:root {
+  --ink: #1d2040;
+  --paper: #eef2ff;
+  --card: #ffffff;
+  --marker: #ffd23f;
+  --red: #c81d34;
+  --green: #17835a;
+  --amber: #b86e00;
+  --blue: #2f4bc4;
+  --line: #c9d1f2;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+h1 { font-size: 2.1rem; line-height: 1.2; margin: 0.4em 0; }
+h2 { font-size: 1.5rem; line-height: 1.25; }
+h3 { font-size: 1.15rem; }
+p { max-width: 62ch; }
+
+:focus-visible { outline: 4px solid var(--blue); outline-offset: 2px; }
+
+/* ---------- top bar ---------- */
+.top {
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  padding: 10px 20px;
+}
+.brand { font-size: 1.4rem; font-weight: bold; }
+.top nav { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+.navbtn {
+  background: transparent;
+  color: #fff;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font: inherit;
+  cursor: pointer;
+}
+.navbtn:hover { border-color: var(--marker); }
+.navbtn.active { background: var(--marker); color: var(--ink); font-weight: bold; }
+.account { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; }
+
+main { max-width: 760px; margin: 0 auto; padding: 20px 18px 60px; }
+
+/* ---------- buttons ---------- */
+button { font: inherit; cursor: pointer; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.big {
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px 24px;
+  min-height: 52px;
+  font-weight: bold;
+}
+.big.alt { background: var(--blue); }
+.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  padding: 10px 18px;
+  min-height: 48px;
+}
+.ghost.light { color: #fff; border-color: #fff; min-height: 0; padding: 6px 14px; }
+
+.cta, .navrow { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 18px 0; }
+.lead { font-size: 1.15rem; }
+.note, .hint { color: #454a75; font-size: 0.92rem; }
+.hint { min-height: 1.4em; }
+
+/* ---------- forms ---------- */
+label { display: block; margin-top: 14px; font-weight: bold; }
+input[type="text"], input[type="email"], input[type="password"], textarea {
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+}
+.or { text-align: center; color: #454a75; margin: 22px 0 0; }
+
+.dropzone {
+  border: 3px dashed var(--blue);
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px 20px;
+  text-align: center;
+}
+.dropzone p { margin: 0 auto 10px; }
+.dropzone.over { background: var(--marker); }
+.filebutton {
+  display: inline-block;
+  margin: 0;
+  background: var(--blue);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+.filebutton input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.filebutton:focus-within { outline: 4px solid var(--marker); outline-offset: 2px; }
+
+/* ---------- result ---------- */
+.result {
+  background: var(--card);
+  border: 3px solid var(--line);
+  border-radius: 18px;
+  padding: 18px 22px;
+  margin-top: 24px;
+}
+.result.high { border-color: var(--red); }
+.result.medium { border-color: var(--amber); }
+.result.low { border-color: var(--green); }
+
+.score {
+  font-size: 3.4rem;
+  font-weight: bold;
+  background: var(--paper);
+  border: 3px solid currentColor;
+  border-radius: 18px;
+  padding: 4px 36px;
+  color: var(--ink);
+}
+.high .score { color: var(--red); }
+.medium .score { color: var(--amber); }
+.low .score { color: var(--green); }
+
+.meter { height: 16px; background: var(--paper); border-radius: 99px; overflow: hidden; margin: 12px 0; border: 1px solid var(--line); }
+.fill { height: 100%; background: var(--blue); border-radius: 99px; transition: width 0.4s; }
+.high .fill { background: var(--red); }
+.medium .fill { background: var(--amber); }
+.low .fill { background: var(--green); }
+.verdict { font-size: 1.2rem; font-weight: bold; }
+
+.reason {
+  background: var(--paper);
+  border-left: 6px solid var(--red);
+  border-radius: 8px;
+  padding: 8px 14px;
+  margin: 10px 0;
+}
+.reason p { margin: 4px 0; }
+.reason a, .reason em { font-size: 0.88rem; }
+
+/* ---------- gmail ---------- */
+.gmailbox { margin-top: 40px; padding-top: 10px; border-top: 3px solid var(--line); }
+.mailrow {
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 2px 12px;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin: 8px 0;
+  color: var(--ink);
+}
+.mailrow .chip { grid-row: span 2; align-self: center; }
+.mailfrom { font-weight: bold; overflow-wrap: anywhere; }
+.mailsubject { overflow-wrap: anywhere; color: #454a75; }
+.chip {
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+  border-radius: 99px;
+  color: #fff;
+  font-weight: bold;
+  padding: 2px 10px;
+  background: var(--green);
+}
+.chip.medium { background: var(--amber); }
+.chip.high { background: var(--red); }
+
+.savedcard { background: #fff; border: 2px solid var(--line); border-radius: 14px; padding: 12px 16px; margin: 14px 0; }
+.savedhead { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; }
+.date { margin-left: auto; color: #454a75; font-size: 0.85rem; }
+
+/* ---------- learning ---------- */
+.step { color: #454a75; margin-bottom: 4px; }
+.teach { background: #fff; border-radius: 16px; padding: 6px 22px; border: 2px solid var(--line); }
+.tips li { margin: 8px 0; }
+.instruction { font-weight: bold; margin-bottom: 6px; }
+
+.fakeemail {
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  padding: 18px 20px;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 1.02rem;
+  line-height: 2.1;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fakeemail.plain { line-height: 1.6; margin-bottom: 8px; }
+.fakeemail span { white-space: pre-wrap; }
+
+.clue {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 3px solid var(--red);
+  border-radius: 55% 45% 60% 40% / 50% 60% 40% 50%;
+  padding: 0 0.35em;
+  margin: 0 2px;
+  line-height: 1.5;
+  text-align: left;
+  white-space: pre-wrap;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+.clue.found {
+  border-color: var(--green);
+  background: #dff5e9;
+  animation: none;
+}
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(200, 29, 52, 0.25); } }
+@media (prefers-reduced-motion: reduce) { .clue { animation: none; } .fill { transition: none; } }
+
+.counter { font-weight: bold; }
+.bubble {
+  background: var(--marker);
+  border-radius: 16px;
+  padding: 12px 18px;
+  margin: 12px 0;
+  font-weight: bold;
+}
+.hidden { display: none; }
+
+.menu { display: grid; gap: 12px; margin-top: 20px; }
+.menucard {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  background: #fff;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  color: var(--ink);
+}
+.menucard:hover:not(:disabled) { border-color: var(--blue); }
+.menucard.done { border-color: var(--green); }
+.menucard.quizcard { background: var(--marker); border-color: var(--ink); }
+.menucard.locked { background: #e3e6f5; border-color: var(--line); }
+.bigemoji { font-size: 2rem; }
+.menutitle { font-weight: bold; }
+.tick { font-size: 0.9rem; color: #454a75; text-align: right; }
+
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 16px 0; }
+.stepcard {
+  text-align: left;
+  background: #fff;
+  border: 3px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stepcard.open { border-color: var(--green); }
+
+.choice {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  color: var(--ink);
+  border: 3px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin: 10px 0;
+  min-height: 52px;
+}
+.choice:hover:not(:disabled) { border-color: var(--blue); }
+.choice.right { border-color: var(--green); background: #dff5e9; opacity: 1; }
+.choice.wrong { border-color: var(--red); background: #fde3e6; opacity: 1; }
+
+.badge { font-size: 2rem; font-weight: bold; background: var(--marker); display: inline-block; padding: 10px 24px; border-radius: 16px; margin: 8px 0; }
+
+dialog { border: 3px solid var(--ink); border-radius: 18px; max-width: 460px; width: calc(100% - 32px); padding: 8px 22px 18px; color: var(--ink); }
+dialog::backdrop { background: rgba(29, 32, 64, 0.6); }
+
+@media (max-width: 560px) {
+  h1 { font-size: 1.7rem; }
+  .menucard { grid-template-columns: 44px 1fr; }
+  .tick { grid-column: 2; text-align: left; }
+}
+
+[hidden] { display: none !important; }

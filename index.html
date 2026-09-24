@@ -3,53 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PhishCheck</title>
+  <title>PhishCheck - spot scam emails</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>PhishCheck</h1>
+  <header class="top">
+    <div class="brand"><span class="owl" aria-hidden="true">🦉</span> PhishCheck</div>
     <nav>
-      <button id="tabcheck" class="tab active">Check an email</button>
-      <button id="tablearn" class="tab">Learn to spot scams</button>
+      <button class="navbtn active" data-view="home">Home</button>
+      <button class="navbtn" data-view="check">Check an email</button>
+      <button class="navbtn" data-view="learn">Learn</button>
+      <button class="navbtn" data-view="saved">My saved checks</button>
     </nav>
+    <div class="account">
+      <span id="whoami"></span>
+      <button id="accountbtn" class="ghost light">Sign in</button>
+    </div>
   </header>
 
   <main>
-    <section id="checkpage">
-      <p class="note">Your email is checked inside your browser. Nothing is uploaded or stored.</p>
+    <section id="view-home" class="view">
+      <h1>Not sure about that email? Let's take a look together.</h1>
+      <p class="lead">Paste it in and PhishCheck shows how risky it looks, and explains why in plain English. Or learn the tricks scammers use, one short lesson at a time.</p>
+      <div class="cta">
+        <button class="big" data-view="check">Check an email</button>
+        <button class="big alt" data-view="learn">Learn to spot scams</button>
+      </div>
+      <p class="note">Your email is checked inside your own browser. Nothing is uploaded unless you sign in and choose to save a check.</p>
+    </section>
 
-      <label for="fromfield">From (e.g. Name &lt;name@example.com&gt;)</label>
-      <input id="fromfield" type="text">
+    <section id="view-check" class="view" hidden>
+      <h1>Check an email</h1>
 
+      <div id="dropzone" class="dropzone">
+        <p><strong>Have the email saved as a file?</strong> Drop the .eml file here, or</p>
+        <label class="filebutton">Choose a file<input id="eml" type="file" accept=".eml,message/rfc822"></label>
+      </div>
+
+      <p class="or">or paste it in</p>
+      <label for="fromfield">From (who sent it)</label>
+      <input id="fromfield" type="text" placeholder="Name <name@example.com>">
+      <label for="replyfield">Reply-To (optional)</label>
+      <input id="replyfield" type="text">
       <label for="subjectfield">Subject</label>
       <input id="subjectfield" type="text">
+      <label for="bodyfield">The email text</label>
+      <textarea id="bodyfield" rows="9"></textarea>
 
-      <label for="bodyfield">Email text</label>
-      <textarea id="bodyfield" rows="10"></textarea>
+      <div class="navrow">
+        <button id="checkbutton" class="big">Check this email</button>
+        <button id="clearbutton" class="ghost">Clear</button>
+      </div>
+      <p id="checkhint" class="hint" aria-live="polite"></p>
 
-      <button id="checkbutton">Check this email</button>
-
-      <div id="result" hidden>
-        <p>Scam risk score (click the number to see why):</p>
-        <button id="scorebutton"></button>
-        <p id="label"></p>
+      <div id="result" class="result" hidden>
+        <p>Scam risk score. Tap the number to see why.</p>
+        <button id="scorebutton" class="score" aria-label="Show why"></button>
+        <div class="meter"><div id="meterfill" class="fill"></div></div>
+        <p id="verdict" class="verdict"></p>
+        <div id="reasons" class="reasons" hidden></div>
+        <h3>What to do next</h3>
+        <ul id="todo"></ul>
+        <div class="navrow">
+          <button id="savebutton" class="ghost">Save this check</button>
+          <span id="savestatus" class="hint" aria-live="polite"></span>
+        </div>
         <p class="note">This is a risk score based on warning signs, not a guarantee either way.</p>
-        <div id="reasons" hidden></div>
+      </div>
+
+      <div class="gmailbox">
+        <h2>Or check your Gmail inbox</h2>
+        <p>Connect Gmail (read only) and PhishCheck scores your latest 10 emails. They stay in your browser and are not stored.</p>
+        <div class="navrow">
+          <button id="gmailbutton" class="big alt">Connect Gmail</button>
+          <button id="gmaildisconnect" class="ghost" hidden>Disconnect</button>
+        </div>
+        <p id="gmailstatus" class="hint" aria-live="polite"></p>
+        <div id="gmaillist"></div>
       </div>
     </section>
 
-    <section id="learnpage" hidden>
-      <h2>Lesson: spot the warning signs</h2>
-      <p>Each red circle marks something suspicious. Read the numbered notes underneath.</p>
-      <div id="lesson"></div>
-      <h2>Quiz</h2>
-      <div id="quiz"></div>
+    <section id="view-learn" class="view" hidden>
+      <div id="learnbox"></div>
+    </section>
+
+    <section id="view-saved" class="view" hidden>
+      <h1>My saved checks</h1>
+      <p class="note">We save the sender, subject, score and reasons. We never save the email text.</p>
+      <div id="savedbox"></div>
     </section>
   </main>
 
+  <dialog id="authdialog">
+    <h2>Your account</h2>
+    <p id="authmessage" class="hint" aria-live="polite"></p>
+    <label for="authemail">Email address</label>
+    <input id="authemail" type="email" autocomplete="email">
+    <label for="authpassword">Password (at least 6 characters)</label>
+    <input id="authpassword" type="password" autocomplete="current-password">
+    <div class="navrow">
+      <button id="signinbutton" class="big">Sign in</button>
+      <button id="signupbutton" class="big alt">Create account</button>
+      <button id="authclose" class="ghost">Close</button>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="config.js"></script>
+  <script src="helpers.js"></script>
   <script src="scanner.js"></script>
+  <script src="eml.js"></script>
+  <script src="lessons.js"></script>
+  <script src="cloud.js"></script>
   <script src="learn.js"></script>
+  <script src="gmail.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

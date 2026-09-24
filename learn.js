@@ -1,138 +1,362 @@
-// learn.js - the learning portal.
+// learn.js - the learning portal: lessons, then a quiz, with saved progress.
 
-// The fake email. Parts with a flag number get circled.
-const LESSONPARTS = [
-  { text: "From: " },
-  { text: "micr0soft-support@gmail.com", flag: 1 },
-  { text: "\nSubject: " },
-  { text: "URGENT: Your account will be closed", flag: 2 },
-  { text: "\n\n" },
-  { text: "Dear customer,", flag: 3 },
-  { text: "\n\nWe noticed unusual activity. " },
-  { text: "Kindly verify your password within 24 hours", flag: 4 },
-  { text: " or your account will be closed.\n\nClick here: " },
-  { text: "http://bit.ly/x8fj2", flag: 5 }
-];
+const LOCALKEY = "phishcheck-progress";
 
-const LESSONNOTES = [
-  "The sender is not Microsoft. It is a free Gmail address, and the 0 in 'micr0soft' is a number pretending to be a letter.",
-  "Scary, urgent subject lines are designed to make you panic.",
-  "A real company usually uses your name. 'Dear customer' means it was sent to thousands of people.",
-  "Real companies never ask for your password by email, and short deadlines are a pressure tactic.",
-  "Shortened links hide where you will really end up. Never click them in a message like this."
-];
-
-const QUESTIONS = [
-  { from: "HMRC <refunds@hmrc-tax-gov.co>",
-    text: "You are owed a tax refund of £412. Claim within 24 hours: http://hmrc-tax-gov.co/claim",
-    isScam: true,
-    why: "The real HMRC uses gov.uk addresses. This one is a copy, and the 24 hour deadline is pressure." },
-  { from: "Amazon <order-update@amazon.co.uk>",
-    text: "Your order has shipped. You can track it any time in Your Orders on the Amazon website or app.",
-    isScam: false,
-    why: "The address is really Amazon's, it asks for nothing, and it tells you to go to the site yourself." },
-  { from: "Mr Adebayo <barrister.adebayo@yahoo.com>",
-    text: "You have been named in an inheritance of 4.5 million pounds. Send your bank details to claim it.",
-    isScam: true,
-    why: "Unexpected money plus a request for bank details is a classic scam." },
-  { from: "Barclays <alerts@barclays.co.uk>",
-    text: "We spotted a payment on your card. If it was not you, call the number on the back of your card. We will never ask for your PIN.",
-    isScam: false,
-    why: "It does not ask for details, and it sends you to a number you already trust." }
-];
-
-let quizIndex = 0;
-let quizScore = 0;
+// lessons = how many lessons are finished. answers = one true/false per quiz question answered.
+let progress = { lessons: 0, answers: [] };
+let learnState = { mode: "menu", lesson: 0 };
 
 /**
- * Makes a button with text and a click action.
+ * Loads saved progress from this browser.
+ */
+function loadProgress() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(LOCALKEY));
+    if (saved && typeof saved.lessons === "number" && Array.isArray(saved.answers)) {
+      progress = saved;
+    }
+  } catch (e) {
+    // No saved progress, or storage is blocked. Start fresh.
+  }
+}
+
+/**
+ * Sets progress (for example from the cloud) and keeps a copy in this browser.
  *
  * Args:
- *   label: the text on the button.
- *   action: the function to run when clicked.
+ *   newProgress: an object with lessons and answers.
+ */
+function setProgress(newProgress) {
+  progress = newProgress;
+  try {
+    localStorage.setItem(LOCALKEY, JSON.stringify(progress));
+  } catch (e) {
+    // Storage blocked. Progress will last until the page closes.
+  }
+}
+
+/**
+ * Saves progress here, and to the account if signed in.
+ */
+function saveProgress() {
+  setProgress(progress);
+  if (typeof cloudSaveProgress === "function") {
+    cloudSaveProgress(progress);
+  }
+}
+
+/**
+ * Draws whichever learning screen we are on.
+ */
+function renderLearn() {
+  const box = document.getElementById("learnbox");
+  clear(box);
+  if (learnState.mode === "lesson") {
+    renderLesson(box);
+  } else if (learnState.mode === "quiz") {
+    renderQuiz(box);
+  } else {
+    renderMenu(box);
+  }
+}
+
+/**
+ * Makes a progress bar.
+ *
+ * Args:
+ *   done: how many steps are done.
+ *   total: how many steps there are.
  *
  * Returns:
- *   The button element.
+ *   The bar element.
  */
-function makeButton(label, action) {
-  const button = document.createElement("button");
-  button.textContent = label;
-  button.onclick = action;
-  return button;
+function makeBar(done, total) {
+  const bar = el("div", "meter");
+  const fill = el("div", "fill");
+  fill.style.width = Math.round((done / total) * 100) + "%";
+  bar.appendChild(fill);
+  return bar;
 }
 
 /**
- * Draws the fake email with circles and the numbered notes below it.
+ * Draws the menu: list of lessons and the quiz.
+ *
+ * Args:
+ *   box: the element to draw into.
  */
-function startLesson() {
-  const lesson = document.getElementById("lesson");
-  const email = document.createElement("div");
-  email.className = "fakeemail";
-  for (const part of LESSONPARTS) {
-    const span = document.createElement("span");
-    span.textContent = part.text;
-    if (part.flag) {
-      span.className = "flagged";
-      const badge = document.createElement("sup");
-      badge.className = "badge";
-      badge.textContent = part.flag;
-      email.appendChild(span);
-      email.appendChild(badge);
+function renderMenu(box) {
+  const answered = progress.answers.length;
+  const total = LESSONS.length + QUESTIONS.length;
+  box.appendChild(el("h2", "", "Learn to spot scams"));
+  box.appendChild(el("p", "lead", "Short lessons first, then a quiz. Your progress is saved."));
+  box.appendChild(makeBar(progress.lessons + answered, total));
+
+  const list = el("div", "menu");
+  LESSONS.forEach(function (lesson, i) {
+    const done = i < progress.lessons;
+    const card = el("button", "menucard" + (done ? " done" : ""));
+    card.type = "button";
+    card.appendChild(el("span", "bigemoji", lesson.emoji));
+    card.appendChild(el("span", "menutitle", "Lesson " + (i + 1) + ": " + lesson.title));
+    card.appendChild(el("span", "tick", done ? "Done ✓" : "Start"));
+    card.onclick = function () {
+      learnState = { mode: "lesson", lesson: i };
+      renderLearn();
+    };
+    list.appendChild(card);
+  });
+
+  const unlocked = progress.lessons >= LESSONS.length;
+  const quiz = el("button", "menucard quizcard" + (unlocked ? "" : " locked"));
+  quiz.type = "button";
+  quiz.disabled = !unlocked;
+  quiz.appendChild(el("span", "bigemoji", "🏆"));
+  let label = "Quiz: " + QUESTIONS.length + " questions";
+  let action = "Start";
+  if (!unlocked) {
+    action = "Finish the lessons to unlock";
+  } else if (answered >= QUESTIONS.length) {
+    action = "See your result";
+  } else if (answered > 0) {
+    action = "Continue (question " + (answered + 1) + ")";
+  }
+  quiz.appendChild(el("span", "menutitle", label));
+  quiz.appendChild(el("span", "tick", action));
+  quiz.onclick = function () {
+    learnState = { mode: "quiz", lesson: 0 };
+    renderLearn();
+  };
+  list.appendChild(quiz);
+  box.appendChild(list);
+}
+
+/**
+ * Draws one lesson page.
+ *
+ * Args:
+ *   box: the element to draw into.
+ */
+function renderLesson(box) {
+  const i = learnState.lesson;
+  const lesson = LESSONS[i];
+  box.appendChild(el("p", "step", "Lesson " + (i + 1) + " of " + LESSONS.length));
+  box.appendChild(makeBar(i, LESSONS.length));
+  box.appendChild(el("h2", "", lesson.emoji + " " + lesson.title));
+
+  const teach = el("div", "teach");
+  for (const paragraph of lesson.intro) {
+    teach.appendChild(el("p", "", paragraph));
+  }
+  if (lesson.tips) {
+    const list = el("ul", "tips");
+    for (const tip of lesson.tips) {
+      list.appendChild(el("li", "", tip));
+    }
+    teach.appendChild(list);
+  }
+  box.appendChild(teach);
+
+  const nextButton = makeButton(i + 1 < LESSONS.length ? "Next lesson" : "Go to the quiz", "big", function () {
+    progress.lessons = Math.max(progress.lessons, i + 1);
+    saveProgress();
+    if (i + 1 < LESSONS.length) {
+      learnState = { mode: "lesson", lesson: i + 1 };
     } else {
-      email.appendChild(span);
+      learnState = { mode: "quiz", lesson: 0 };
+    }
+    renderLearn();
+    window.scrollTo(0, 0);
+  });
+
+  if (lesson.parts) {
+    drawClues(box, lesson, nextButton);
+  } else {
+    drawSteps(box, lesson, nextButton);
+  }
+
+  const nav = el("div", "navrow");
+  nav.appendChild(makeButton("Back to menu", "ghost", function () {
+    learnState = { mode: "menu", lesson: 0 };
+    renderLearn();
+  }));
+  nav.appendChild(nextButton);
+  box.appendChild(nav);
+}
+
+/**
+ * Draws the example email with tappable circled clues.
+ *
+ * Args:
+ *   box: the element to draw into.
+ *   lesson: the lesson object.
+ *   nextButton: the Next button, unlocked when all clues are found.
+ */
+function drawClues(box, lesson, nextButton) {
+  const total = lesson.parts.filter(function (p) { return p.note; }).length;
+  let found = 0;
+  nextButton.disabled = true;
+
+  box.appendChild(el("p", "instruction", "Tap the red circles to see what is suspicious."));
+  const email = el("div", "fakeemail");
+  const counter = el("p", "counter", "Clues found: 0 of " + total);
+  const bubble = el("div", "bubble", "🦉 Tap a circle and I will explain it.");
+  bubble.setAttribute("aria-live", "polite");
+
+  function reveal(button, part) {
+    if (!button.classList.contains("found")) {
+      button.classList.add("found");
+      found++;
+      counter.textContent = "Clues found: " + found + " of " + total;
+    }
+    bubble.textContent = "🦉 " + part.note;
+    if (found >= total) {
+      nextButton.disabled = false;
+      counter.textContent = "You found all " + total + " clues. Well done!";
     }
   }
-  lesson.appendChild(email);
 
-  const list = document.createElement("ol");
-  for (const note of LESSONNOTES) {
-    const item = document.createElement("li");
-    item.textContent = note;
-    list.appendChild(item);
+  const buttons = [];
+  for (const part of lesson.parts) {
+    if (part.note) {
+      const clue = el("button", "clue", part.text);
+      clue.type = "button";
+      clue.onclick = function () { reveal(clue, part); };
+      buttons.push({ button: clue, part: part });
+      email.appendChild(clue);
+    } else {
+      email.appendChild(el("span", "", part.text));
+    }
   }
-  lesson.appendChild(list);
+  box.appendChild(email);
+  box.appendChild(counter);
+  box.appendChild(bubble);
+  box.appendChild(makeButton("Show me all the clues", "ghost", function () {
+    for (const b of buttons) {
+      reveal(b.button, b.part);
+    }
+  }));
 }
 
 /**
- * Shows the current quiz question, or the final score.
+ * Draws the tappable step cards (for the Stop, Check, Report lesson).
+ *
+ * Args:
+ *   box: the element to draw into.
+ *   lesson: the lesson object.
+ *   nextButton: the Next button, unlocked when all cards are opened.
  */
-function showQuestion() {
-  const box = document.getElementById("quiz");
-  box.textContent = "";
-  box.className = "quizbox";
+function drawSteps(box, lesson, nextButton) {
+  let opened = 0;
+  nextButton.disabled = true;
+  const grid = el("div", "steps");
+  for (const step of lesson.steps) {
+    const card = el("button", "stepcard");
+    card.type = "button";
+    card.appendChild(el("span", "bigemoji", step.emoji));
+    card.appendChild(el("strong", "", step.title));
+    const text = el("span", "steptext", "Tap to open");
+    card.appendChild(text);
+    card.onclick = function () {
+      if (!card.classList.contains("open")) {
+        card.classList.add("open");
+        text.textContent = step.text;
+        opened++;
+        if (opened >= lesson.steps.length) {
+          nextButton.disabled = false;
+        }
+      }
+    };
+    grid.appendChild(card);
+  }
+  box.appendChild(grid);
+}
 
-  if (quizIndex >= QUESTIONS.length) {
-    box.textContent = "Finished! You got " + quizScore + " out of " + QUESTIONS.length + ". ";
-    box.appendChild(makeButton("Try again", function () {
-      quizIndex = 0;
-      quizScore = 0;
-      showQuestion();
-    }));
+/**
+ * Draws the current quiz question, or the result if all are answered.
+ *
+ * Args:
+ *   box: the element to draw into.
+ */
+function renderQuiz(box) {
+  const index = progress.answers.length;
+  if (index >= QUESTIONS.length) {
+    renderQuizResult(box);
     return;
   }
+  const q = QUESTIONS[index];
+  box.appendChild(el("p", "step", "Question " + (index + 1) + " of " + QUESTIONS.length));
+  box.appendChild(makeBar(index, QUESTIONS.length));
 
-  const q = QUESTIONS[quizIndex];
-  const info = document.createElement("p");
-  info.style.whiteSpace = "pre-wrap";
-  info.textContent = "Question " + (quizIndex + 1) + " of " + QUESTIONS.length + "\n\nFrom: " + q.from + "\n\n" + q.text;
-  box.appendChild(info);
-
-  const feedback = document.createElement("p");
-
-  function answer(saidScam) {
-    const right = saidScam === q.isScam;
-    if (right) {
-      quizScore++;
-    }
-    feedback.className = right ? "good" : "bad";
-    feedback.textContent = (right ? "Correct! " : "Not quite. ") + q.why;
-    box.appendChild(makeButton("Next question", function () {
-      quizIndex++;
-      showQuestion();
-    }));
+  if (q.email) {
+    const card = el("div", "fakeemail plain");
+    card.textContent = "From: " + q.email.from + "\nSubject: " + q.email.subject + "\n\n" + q.email.text;
+    box.appendChild(card);
   }
+  box.appendChild(el("h2", "", q.prompt));
 
-  box.appendChild(makeButton("Scam", function () { answer(true); }));
-  box.appendChild(makeButton("Legit", function () { answer(false); }));
+  const feedback = el("div", "bubble hidden");
+  const choices = [];
+  q.options.forEach(function (option, n) {
+    const choice = makeButton(option, "choice", function () {
+      const right = n === q.answer;
+      progress.answers.push(right);
+      saveProgress();
+      for (const c of choices) {
+        c.disabled = true;
+      }
+      choices[q.answer].classList.add("right");
+      if (!right) {
+        choice.classList.add("wrong");
+      }
+      feedback.classList.remove("hidden");
+      feedback.textContent = (right ? "🦉 Correct! " : "🦉 Not quite. ") + q.why;
+      nextRow.classList.remove("hidden");
+    });
+    choices.push(choice);
+    box.appendChild(choice);
+  });
   box.appendChild(feedback);
+
+  const nextRow = el("div", "navrow hidden");
+  nextRow.appendChild(makeButton("Next", "big", function () {
+    renderLearn();
+    window.scrollTo(0, 0);
+  }));
+  box.appendChild(nextRow);
+}
+
+/**
+ * Draws the final result and badge.
+ *
+ * Args:
+ *   box: the element to draw into.
+ */
+function renderQuizResult(box) {
+  const score = progress.answers.filter(function (a) { return a; }).length;
+  const percent = Math.round((score / QUESTIONS.length) * 100);
+  let badge = "🌱 Keep practising";
+  let message = "Go back over the lessons, then try again. Everyone starts somewhere.";
+  if (percent >= 90) {
+    badge = "🥇 Scam Spotter";
+    message = "Brilliant. You can spot the tricks that fool most people.";
+  } else if (percent >= 70) {
+    badge = "🥈 Sharp Eyes";
+    message = "Very good. Try again to catch the ones you missed.";
+  }
+  box.appendChild(el("h2", "", "Quiz finished"));
+  box.appendChild(el("div", "badge", badge));
+  box.appendChild(el("p", "lead", "You got " + score + " out of " + QUESTIONS.length + " (" + percent + "%). " + message));
+  box.appendChild(makeBar(score, QUESTIONS.length));
+
+  const nav = el("div", "navrow");
+  nav.appendChild(makeButton("Try the quiz again", "big", function () {
+    progress.answers = [];
+    saveProgress();
+    renderLearn();
+  }));
+  nav.appendChild(makeButton("Back to menu", "ghost", function () {
+    learnState = { mode: "menu", lesson: 0 };
+    renderLearn();
+  }));
+  box.appendChild(nav);
 }
